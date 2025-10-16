@@ -1,0 +1,60 @@
+% delta wing sizing attempt 2
+
+close all
+clear
+
+%% General Properties
+rho = 1.204; %air density [kg/m^3]
+mu = 17.22e-6; %dynamic viscosity [Pa s]
+
+%% Chosen parameters
+
+W = 1.36; %weight [kg] (3 lbs)
+v_cruise = 6.069; %cruise speed [m/s] (~20 ft/s)
+b = 0.6096; %wingspan [m] (~1 ft)
+sweep_angle = 30; %sweep angle, degrees
+
+taper_ratio = 0.4; %taper ratio
+
+Cl_design = 1; %design lift coefficient
+
+% NACA 4415: root airfoil
+alpha_0_r = -2.42; %zero lift AOA [degrees]
+Cm_r = -0.078; %airfoil Cm at design Cl
+
+%MH 61: tip airfoil
+alpha_0_t = -1.8; %zero lift AOA [degrees]
+Cm_t = -0.04; %airfoil Cm at design Cl
+
+%% Calculations
+
+% AR = b^2/S, so S = b^2/AR
+Sw = 2*W/(rho*v_cruise.^2*Cl_design);
+%AR = 5;
+%Sw = (b^2)/AR; %wing area, (m^2)
+AR = b^2/Sw;
+
+%for delta wing: S = b/2 * (cr + ct), and ct = taper ratio * cr. use to
+%find cr and ct
+c_r = (2*Sw)/((1+taper_ratio)*b); %root chord length (m)
+c_t = taper_ratio*c_r; %tip chord length (m)
+
+c_mac = (2/3)*(1+taper_ratio+taper_ratio^2)/(1+taper_ratio)*c_r; %MAC chord length [m]
+y_mac = (b/2) * (c_r - c_mac)/(c_r - c_t); %spanwise position of MAC [m]
+
+static_margin = 0.02; %for stability, typically for flying wing between 2 and 5%
+
+%Cl for cruise:
+Cl_cruise = (2*W)/(rho*v_cruise^2*Sw); %cruise Cl
+
+K1 = (1/4)*(3 + 2*taper_ratio + taper_ratio^2)/(1 + taper_ratio + taper_ratio^2);
+K2 = 1 - K1;
+
+%total twist calculations
+twist_total = ((K1 * Cm_r + K2 * Cm_t) - Cl_design * static_margin)/(1.4e-5 * AR^1.43 * sweep_angle);
+geo_twist = twist_total - (alpha_0_r - alpha_0_t); %these might be wrong, just use XFLR5?
+
+%% Winglet sizing (not on sizing)
+winglet_taper_ratio = 0.3; %based on papers
+c_r_winglet = c_t;
+c_t_winglet = winglet_taper_ratio * c_r_winglet;A
