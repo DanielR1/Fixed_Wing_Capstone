@@ -4,19 +4,26 @@ close all
 clear
 
 %% General Properties
-rho = 1.204; %air density [kg/m^3]
+rho = 1.204; %air density [kg/m^3] at 20C
 mu = 17.22e-6; %dynamic viscosity [Pa s]
+
+%% Settings
+
+stall_design = 1; %1 -Design based on stall speed and max Cl. 
+% 0 - Design based on cruise velocity and target Cl (max l/d)
 
 %% Chosen parameters
 
-W = 1.36; %weight [kg] (3 lbs)
-v_cruise = 6.069; %cruise speed [m/s] (~20 ft/s)
-b = 0.6096; %wingspan [m] (~1 ft)
-sweep_angle = 30; %sweep angle, degrees
+W = 0.75; %weight [kg] 
+v_cruise = 3; %cruise speed [m/s] 
+v_stall = 3;
+b = 0.53; %wingspan [m] 
+sweep_angle = 15; %sweep angle, degrees
 
-taper_ratio = 0.4; %taper ratio
+taper_ratio = 0.7; %taper ratio
 
 Cl_design = 1; %design lift coefficient
+Cl_max = 1.5;
 
 % NACA 4415: root airfoil
 alpha_0_r = -2.42; %zero lift AOA [degrees]
@@ -29,7 +36,13 @@ Cm_t = -0.04; %airfoil Cm at design Cl
 %% Calculations
 
 % AR = b^2/S, so S = b^2/AR
-Sw = 2*W/(rho*v_cruise.^2*Cl_design);
+switch stall_design
+    case 1
+        Sw = 2*W/(rho*v_stall.^2*Cl_max);
+    case 0
+        Sw = 2*W/(rho*v_cruise.^2*Cl_design);
+end
+
 %AR = 5;
 %Sw = (b^2)/AR; %wing area, (m^2)
 AR = b^2/Sw;
@@ -57,4 +70,15 @@ geo_twist = twist_total - (alpha_0_r - alpha_0_t); %these might be wrong, just u
 %% Winglet sizing (not on sizing)
 winglet_taper_ratio = 0.3; %based on papers
 c_r_winglet = c_t;
-c_t_winglet = winglet_taper_ratio * c_r_winglet;A
+c_t_winglet = winglet_taper_ratio * c_r_winglet;
+
+
+%% Measure distance from front to back (root LE to tip TE)
+
+Lambda_LE = atand(tand(sweep_angle) + 0.25*(c_r - c_t)/(b/2) );
+
+% x-offset from root LE to tip LE
+x_LE_to_LE = (b/2) * tand(Lambda_LE);
+
+% total x-offset from root LE to tip TE
+x_LE_to_TE = x_LE_to_LE + c_t
