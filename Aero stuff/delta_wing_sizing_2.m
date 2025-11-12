@@ -13,11 +13,19 @@ stall_design = 1; %1 -Design based on stall speed and max Cl.
 % 0 - Design based on cruise velocity and target Cl (max l/d)
 
 %% Chosen parameters
+<<<<<<< Updated upstream
 mass = 0.75; %mass [kg]
 W = mass*9.8; %weight [N] 
 v_cruise = 3; %cruise speed [m/s] 
 v_stall = 9;
 b = 0.53; %wingspan [m] 
+=======
+
+W = 0.75*9.81; %weight [N] 
+v_cruise = 3; %cruise speed [m/s] 
+v_stall = 9; % stall speed [m/s]
+b = .53; %wingspan [m] 
+>>>>>>> Stashed changes
 sweep_angle = 15; %sweep angle, degrees
 
 taper_ratio = 0.7; %taper ratio
@@ -82,3 +90,5 @@ x_LE_to_LE = (b/2) * tand(Lambda_LE);
 
 % total x-offset from root LE to tip TE
 x_LE_to_TE = x_LE_to_LE + c_t
+
+%%
