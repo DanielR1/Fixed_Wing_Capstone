@@ -13,10 +13,10 @@ stall_design = 1; %1 -Design based on stall speed and max Cl.
 % 0 - Design based on cruise velocity and target Cl (max l/d)
 
 %% Chosen parameters
-
-W = 0.75; %weight [kg] 
+mass = 0.75; %mass [kg]
+W = mass*9.8; %weight [N] 
 v_cruise = 3; %cruise speed [m/s] 
-v_stall = 3;
+v_stall = 9;
 b = 0.53; %wingspan [m] 
 sweep_angle = 15; %sweep angle, degrees
 
