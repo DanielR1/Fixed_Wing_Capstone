@@ -13,25 +13,19 @@ stall_design = 1; %1 -Design based on stall speed and max Cl.
 % 0 - Design based on cruise velocity and target Cl (max l/d)
 
 %% Chosen parameters
-<<<<<<< Updated upstream
-mass = 0.75; %mass [kg]
-W = mass*9.8; %weight [N] 
-v_cruise = 3; %cruise speed [m/s] 
-v_stall = 9;
-b = 0.53; %wingspan [m] 
-=======
 
-W = 0.75*9.81; %weight [N] 
-v_cruise = 3; %cruise speed [m/s] 
-v_stall = 9; % stall speed [m/s]
-b = .53; %wingspan [m] 
->>>>>>> Stashed changes
-sweep_angle = 15; %sweep angle, degrees
+mass = 0.7; %mass [kg]
+W = mass*9.8; %weight [N] 
+v_cruise = 15; %cruise speed [m/s] 
+v_stall = 8;
+b = 0.53; %wingspan [m] 
+
+sweep_angle = 10; %sweep angle, degrees
 
 taper_ratio = 0.7; %taper ratio
 
 Cl_design = 1; %design lift coefficient
-Cl_max = 1.5;
+Cl_max = 1.2;
 
 % NACA 4415: root airfoil
 alpha_0_r = -2.42; %zero lift AOA [degrees]
@@ -92,3 +86,48 @@ x_LE_to_LE = (b/2) * tand(Lambda_LE);
 x_LE_to_TE = x_LE_to_LE + c_t
 
 %%
+clc; clear all;
+
+cr = .24;
+%cr = .24;
+%cr = .304;
+tr = .7;
+ct = tr*cr;
+b = .266;
+%b = .24;
+%b = .266;
+%b = .457;
+x = .24 - ct;
+Lambda = atand(x/b);
+%Lambda = deg2rad(11.29);
+nu = 1.5111e-5;
+rho = 1.204;
+
+mass = 0.65;
+W = mass*9.81;
+Vs = 9;
+V = 15;
+
+Re_stall = Vs*((cr+ct)/2)/nu;
+Re_cruise = V*((cr+ct)/2)/nu;
+Clmax = 1.2;
+Cl = 0.5;
+S_stall = (2*W)/(rho*Vs^2*Clmax);
+S_cruise = (2*W)/(rho*V^2*Cl);
+
+
+S_calc = b*(cr + ct);
+L_stall = Clmax*1/2*rho*Vs^2*S_calc;
+L_cruise = Cl*1/2*rho*V^2*S_calc;
+
+WtoL_stall = W/L_stall;
+WtoL_cruise = W/L_cruise;
+
+AR_stall = (2*b)^2/S_stall;
+AR_cruise = (2*b)^2/S_cruise;
+AR_calc = (2*b)^2/S_calc;
+
+wingload = W/S_cruise;
+
+phi = deg2rad(70);
+R = Vs^2/(9.81*tan(phi))
