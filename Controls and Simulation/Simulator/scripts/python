@@ -1,0 +1,2 @@
+#!/bin/bash
+exec "/Users/danielr1/Documents/Fixed_Wing_Capstone/Controls and Simulation/Simulator/.venv/bin/python" "$@"
