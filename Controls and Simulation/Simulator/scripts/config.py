@@ -15,8 +15,9 @@ INERTIA_TENSOR = np.array([
 ])  # kg*m^2
 
 # Geometry
-MOMENT_ARM = 0.14  # meters, distance from center to motor
-DRAG_COEFFICIENT = 0.1  # propeller drag coefficient
+MOMENT_ARM = 0.14  # meters, distance from center to motor (use for FW)
+MOMENT_COEFF_X = 1 # coefficient for A2 allocation matrix. multiplied by thrust and deflection to get x roll moment
+MOMENT_COEFF_Y = 1 # coefficient for A2 allocation matrix. multiplied by thrust and deflection to get y roll moment
 
 # ==================== Simulation Parameters ====================
 SIMULATION_RATE = 500  # Hz
@@ -40,6 +41,12 @@ GATE_HEIGHT = 1  # meters, height off the ground
 TIME_TO_GATE = 1.2  # seconds
 GATE_POSITION = [0, 0, GATE_HEIGHT]  # [x, y, z] in meters
 
+
+# ==================== Guidance Gains ====================
+
+#PD gains on basic guidance:
+Kp_BG = np.diag([12, 12, 12])
+Kd_BG = np.diag([4,4,4])
 # ==================== Controller Gains ====================
 # Position controller
 Kp_POSITION = np.diag([12, 12, 12])
