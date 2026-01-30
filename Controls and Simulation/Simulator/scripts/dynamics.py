@@ -65,7 +65,54 @@ class dynamics:
 		res = np.array([dx, dy, dz, dvx, dvy, dvz, dqw, dqx, dqy, dqz, dwx, dwy, dwz])
 
 		return res
+	# def rates_old(self, state, f):
+	# 	# Get rotation matrix from current quaterion
+	# 	R = self.quat_to_rot([state[6], state[7], state[8], state[9]])
 
+	# 	# Get thrust from motor forces f
+	# 	T = f[0] + f[1] + f[2] + f[3]
+		
+	# 	# Velocities
+	# 	dx = state[3]
+	# 	dy = state[4]
+	# 	dz = state[5]
+
+	# 	# Accelerations
+	# 	dvx = R[0,2] * T  / self.m
+	# 	dvy = R[1,2] * T  / self.m
+	# 	dvz = R[2,2] * T  / self.m - self.g
+
+	# 	# Orientation
+	# 	q = np.array([state[6], state[7], state[8], state[9]])
+	# 	wx, wy, wz = state[10], state[11], state[12]
+	# 	omega = np.array([[0, -wx, -wy, -wz], 
+	# 			 [wx, 0, wz, -wy], 
+	# 			 [wy, -wz, 0, wx], 
+	# 			 [wz, wy, -wx, 0]])
+	# 	dq = np.matmul(omega, q) / 2
+	# 	dqw = dq[0]
+	# 	dqx = dq[1]
+	# 	dqy = dq[2]
+	# 	dqz = dq[3]
+
+	# 	# Angular Velocities
+	# 	# Torque
+	# 	tau_x = self.l * (f[0] - f[2])
+	# 	tau_y = self.l * (f[1] - f[3])
+	# 	tau_z = self.c * (f[0] - f[1] + f[2] - f[3])
+	# 	tau = np.array([tau_x, tau_y, tau_z])
+	# 	w = np.array([wx, wy, wz])
+	# 	Jinv = np.linalg.inv(self.J)
+	# 	Jw = np.matmul(self.J, w)
+	# 	w_cross_Jw = np.cross(w, Jw)
+	# 	dw = np.matmul(Jinv, (tau - w_cross_Jw))
+	# 	dwx = dw[0]
+	# 	dwy = dw[1]
+	# 	dwz = dw[2]
+
+	# 	res = np.array([dx, dy, dz, dvx, dvy, dvz, dqw, dqx, dqy, dqz, dwx, dwy, dwz])
+
+	# 	return res
 	# Numerical integration scheme (can do better than Euler!)
 	def propagate(self, state, f, dt):
 		state += dt * self.rates(state, f)

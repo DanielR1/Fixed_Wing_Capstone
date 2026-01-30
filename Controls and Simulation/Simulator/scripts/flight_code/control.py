@@ -28,8 +28,6 @@ class Controller:
     
     def get_control_inputs(self, state, a_com, t):
         """Compute control inputs based on state and commanded acceleration"""
-    def get_control_inputs(self, state, a_com, t):
-        """Compute control inputs based on state and commanded acceleration"""
         m = config.MASS
         g = config.GRAVITY
         
@@ -71,18 +69,37 @@ class Controller:
         tau = -np.sign(q_e[0]) * (Kp_att @ q_e_vector) - (Kd_att @ w) + np.sign(q_e[0])*(lambda_ @ q_e_dot[1:])
         # If using integral: tau += Ki_att @ self.attitude_integral
         
-        tau_full = np.append(tau,T_com)
+        #tau_full = np.append(tau,T_com)
+
         
         # Convert to forces
         l = config.MOMENT_ARM
-        c = config.DRAG_COEFFICIENT
-        A = np.array([
-            [l, l, -l, -l],
-            [-l, l, l, -l],
-            [c, -c, c, -c],
-            [1, 1, 1 ,1]  # fourth row is to make sure all forces add to thrust
-        ])
-        A_inv = np.linalg.inv(A)
+        cx = config.MOMENT_COEFF_X
+        cy = config.MOMENT_COEFF_X
 
-        ctrl_in = A_inv @ tau_full
+
+        #Step 1: Find thrust forces from yaw moment and total thrust
+        tau_1 = np.array([tau[2], T_com])  # tau[2] is yaw moment
+        A1 = np.array([
+            [l, -l],
+            [1,1]
+        ])
+        A1_inv = np.linalg.inv(A1)
+
+        [T1, T2] = A1_inv @ tau_1
+
+        #Step 2: Find control deflections from thrust forces, roll/pitch moments
+
+        tau_2 = tau[0:1]  # roll and pitch moments (tau[0] and tau[1])
+        A2 = np.array([
+            [cx*T1, -cx*T2],
+            [-cy*T1, -cy*T2]
+        ])
+        A2_inv = np.linalg.inv(A2)
+
+        [delta_1, delta_2] = A2_inv @ tau_2
+
+        #Combine
+        ctrl_in = [T1, T2, delta_1, delta_2]
+
         return ctrl_in

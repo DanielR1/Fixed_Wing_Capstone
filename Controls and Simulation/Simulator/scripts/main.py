@@ -70,7 +70,7 @@ dyn = dynamics.dynamics(np.array([g]), dt)
 controller = control.Controller(dt)
 
 # Initialize guidance
-guide = guidance.Guidance(dt)
+guid = guidance.Guidance(dt, "basic_guidance")
 
 # Initialize navigation
 nav = navigation.Navigation(dt)
@@ -90,7 +90,7 @@ while running:
     estimated_state = nav.get_estimated_states(state, None)
     
     # Guidance: compute desired acceleration
-    a_com = guide.get_a_com(estimated_state, t)
+    a_com = guid.get_a_com(estimated_state, t)
     
     # Control: compute motor commands
     ctrl_in = controller.get_control_inputs(estimated_state, a_com, t)

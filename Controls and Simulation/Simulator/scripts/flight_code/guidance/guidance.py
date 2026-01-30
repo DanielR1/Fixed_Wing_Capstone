@@ -4,12 +4,12 @@
 
 import numpy as np
 import config
-
+import basic_guidance as bg
 class Guidance:
-    def __init__(self, dt):
+    def __init__(self, dt, guid_mode):
         """Initialize guidance system"""
         self.dt = dt
-        
+        self.guid_mode = guid_mode #guid_mode can be "basic_guidance", "waypoint", or "polynomial"
         # Trajectory history (can store previous waypoints, errors, etc.)
         self.trajectory_history = []
         self.previous_target = None
@@ -17,6 +17,8 @@ class Guidance:
         # Trajectory parameters (if needed for state-dependent planning)
         self.current_waypoint_index = 0
         self.waypoints = []  # List of waypoints to follow
+
+
         
     def set_waypoints(self, waypoints):
         """Set a list of waypoints for the guidance system to follow"""
@@ -28,14 +30,20 @@ class Guidance:
         self.trajectory_history = []
         self.previous_target = None
         self.current_waypoint_index = 0
+
+    def set_guid_mode(self, guid_mode):
+        """Set guidance mode"""
+        self.guid_mode = guid_mode
     
     def get_a_com(self, state, t):
         """Compute commanded acceleration based on state and time"""
         # Store current state in history if needed
         # self.trajectory_history.append((t, state.copy()))
-        
-        # Placeholder - implement your guidance law here
-        a_com = np.zeros(3)
+    
+        if self.guid_mode == "basic_guidance":
+            a_com = bg.get_a_com_bg(state,t)
+    
+
         
         return a_com
 
