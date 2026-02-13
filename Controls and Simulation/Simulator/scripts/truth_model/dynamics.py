@@ -5,6 +5,7 @@
 
 import numpy as np
 import config
+import aero
 
 class dynamics: 
 	def __init__(self, params, dt):
@@ -17,12 +18,20 @@ class dynamics:
 		
 
 	# This is meant to give the rates of each state
-	def rates(self, state, f):
+	def rates(self, state, ctrl_in):
 		# Get rotation matrix from current quaterion
 		R = self.quat_to_rot([state[6], state[7], state[8], state[9]])
 
-		# Get thrust from motor forces f
-		T = f[0] + f[1] + f[2] + f[3]
+		# Get thrust from control inputs
+		T = ctrl_in[0:1]
+
+		T_body_coords = np.array([T,0,0])
+		
+
+		#get aerodynamic forces (including control input) in body coords
+		FM_aero = aero.getAeroForcesMoments(state, ctrl_in)
+
+		Force_body = FM_aero[0:2] + T_body_coords
 		
 		# Velocities
 		dx = state[3]
@@ -30,9 +39,12 @@ class dynamics:
 		dz = state[5]
 
 		# Accelerations
-		dvx = R[0,2] * T  / self.m
-		dvy = R[1,2] * T  / self.m
-		dvz = R[2,2] * T  / self.m - self.g
+		# dvx = R[0,0] * T  / self.m
+		# dvy = R[1,0] * T  / self.m
+		# dvz = R[2,0] * T  / self.m - self.g
+
+		[dvx, dvy, dvz] = R @ Force_body #accelerations in global coordinates
+		dvz = dvz-self.g #correct for gravity
 
 		# Orientation
 		q = np.array([state[6], state[7], state[8], state[9]])
@@ -114,8 +126,8 @@ class dynamics:
 
 	# 	return res
 	# Numerical integration scheme (can do better than Euler!)
-	def propagate(self, state, f, dt):
-		state += dt * self.rates(state, f)
+	def propagate(self, state, ctrl_in, dt):
+		state += dt * self.rates(state, ctrl_in)
 
 		# GAUSSIAN DISTURBANCES
 		# r_noise_stddev = 0.01 # linear position standard dev

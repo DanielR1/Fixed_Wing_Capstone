@@ -13,7 +13,7 @@ from numpy.f2py.symbolic import as_complex
 trp = np.transpose
 
 ### Import custom modules and classes ###
-import dynamics
+from truth_model import dynamics
 import config
 import quaternion_helpers as qhelp
 from flight_code.guidance import guidance
@@ -92,16 +92,16 @@ while running:
     # Guidance: compute desired acceleration
     a_com = guid.get_a_com(estimated_state, t)
     
-    # Control: compute motor commands
+    # Control: compute control commands [T1, T2, delta1, delta2], (L=1, R=2)
     ctrl_in = controller.get_control_inputs(estimated_state, a_com, t)
-    f = ctrl_in  # Motor forces
+
 
     #f = f + np.array([m*g/4, m*g/4,m*g/4,m*g/4]) #add to also counter mass weight (nvm don't use this)
     # Run inner-loop controller to get motor forces 
    # f = [3, 3, 3, 3]
 
     # Propagate dynamics with control inputs
-    state = dyn.propagate(state, f, dt)
+    state = dyn.propagate(state, ctrl_in, dt)
  
     # If z to low then indicate crash and end simulation
     if state[2] < config.MIN_ALTITUDE and t > config.CRASH_CHECK_TIME:
