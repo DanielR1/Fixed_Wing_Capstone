@@ -16,6 +16,7 @@ trp = np.transpose
 from truth_model import dynamics
 import config
 import quaternion_helpers as qhelp
+import helper_funcs as help
 from flight_code.guidance import guidance
 from flight_code import control
 from flight_code import navigation
@@ -48,6 +49,9 @@ state[6:10] = config.INITIAL_QUATERNION
 
 # wx, wy, wz
 state[10:13] = config.INITIAL_ANGULAR_VELOCITY
+
+#alpha, beta
+state[13:15] = help.compute_alpha_beta(state)
 
 # Final state
 tf = config.FINAL_TIME

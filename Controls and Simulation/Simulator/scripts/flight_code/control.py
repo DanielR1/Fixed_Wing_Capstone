@@ -5,6 +5,7 @@ import numpy as np
 import math
 import config
 import quaternion_helpers as qhelp
+import aero_comp as ac
 
 class Controller:
     def __init__(self, dt):
@@ -27,21 +28,76 @@ class Controller:
         self.attitude_integral = np.zeros(3)
     
     def get_control_inputs(self, state, a_com, t):
+
+        q = [state[6], state[7], state[8], state[9]]
+        (qw, qx, qy, qz) = q
+
+        #aero compensation/feedforward
+        a_com = ac.aero_comp(a_com)
+
         """Compute control inputs based on state and commanded acceleration"""
         m = config.MASS
         g = config.GRAVITY
         
-        T_com = m*np.linalg.norm(a_com) #commanded total thrust
+        #APPROACH - blending hover and fixed-wing desired quaternions based on speed.
+
+        # Hover mode desired quaternion
+        T_com_hover = m*np.linalg.norm(a_com) #commanded total thrust
         e3 = np.array([0, 0, 1])
         a_hat = a_com/np.linalg.norm(a_com)
         q_d_r = 1+np.dot(e3,a_hat)
         q_d_i = np.cross(e3,a_hat)
-        q_d = np.append([q_d_r], q_d_i)/math.sqrt(2*(1+np.dot(e3,a_hat)))
-        q_d = q_d/np.linalg.norm(q_d)
+        q_d_hover = np.append([q_d_r], q_d_i)/math.sqrt(2*(1+np.dot(e3,a_hat)))
+        q_d_hover = q_d_hover/np.linalg.norm(q_d_hover)
+
+        #Fixed-wing mode desired quaternion
+        
+        vx = state[3]
+        vy = state[4]
+        vz = state[5]
+        V = np.sqrt(vx**2+vy**2+vz**2)
+
+        if (V>0.1): #guardrail to prevent violent switch in variables
+
+            psi = np.arctan2(vy, vx) #flight path heading angle
+            lat_dir_global = np.array([-np.sin(psi), np.cos(psi), 0.0])
+            a_lat = np.dot(a_com, lat_dir_global) #lateral component of acceleration (in horizontal plane perp. to motion).
+
+            # {        # # Get heading direction in horizontal plane (body x-axis projected to x-y plane)
+            # R_body = qhelp.quat_to_R(q)  # body-to-global rotation matrix
+            # x_body = R_body[:, 0]  # forward direction in global frame
+            # heading_flat = np.array([x_body[0], x_body[1], 0])  # project to x-y plane
+            # heading_flat = heading_flat / np.linalg.norm(heading_flat)  # normalize
+            
+            # # Perpendicular direction in horizontal plane (rotate 90° in x-y plane)
+            # perp_flat = np.array([-heading_flat[1], heading_flat[0], 0])
+            
+            # # Project a_com onto this perpendicular direction to get lateral acceleration
+            # a_lat = np.dot(a_com, perp_flat)
+
+            #compute desired bank angle
+            g = config.GRAVITY
+            phi_d = np.arctan2(a_lat, g)
+            #theta_d = np.asin(2*q_d_hover[1]*q_d_hover[2] + 2*q_d_hover[3]*q_d_hover[0])
+            theta_d = qhelp.quat_to_euler_ZXY(q_d_hover)[1]
+            q_d_fw = qhelp.euler_ZXY_to_quat(phi_d, theta_d, psi) #fw to be blended
+        else:
+            q_d_fw = q_d_hover
+
+        #Blending hover and fixed wing quaternions
+        #Blending weights:
+        V_min = 2.0 #m/s
+        V_max = 10.0 #m/s
+        w = np.clip((V - V_min) / (V_max - V_min), 0.0, 1.0)
+        # 3. Spherical Linear Interpolation (SLERP)
+        # When w=0, q_d is 100% q_d_hover. When w=1, q_d is 100% q_d_fw.
+        q_d = qhelp.slerp(q_d_hover, q_d_fw, w)
+
         R_d = qhelp.quat_to_R(q_d)
+        T_com =T_com_hover; #might need to change later?
 
         # Attitude controller
-        q = [state[6], state[7], state[8], state[9]]
+
         q_d_star = [q_d[0], -q_d[1], -q_d[2], -q_d[3]]
         q_e = qhelp.quat_mult(q_d_star, q)
         
@@ -75,7 +131,7 @@ class Controller:
         # Convert to forces
         l = config.MOMENT_ARM
         cx = config.MOMENT_COEFF_X
-        cy = config.MOMENT_COEFF_X
+        cy = config.MOMENT_COEFF_Y
 
 
         #Step 1: Find thrust forces from yaw moment and total thrust
@@ -88,12 +144,17 @@ class Controller:
 
         [T1, T2] = A1_inv @ tau_1
 
-        #Step 2: Find control deflections from thrust forces, roll/pitch moments
+        # Ensure physical limits (motors can't spin backwards in most setups)
+        T1 = max(0.0, T1)
+        T2 = max(0.0, T2)
 
-        tau_2 = tau[0:1]  # roll and pitch moments (tau[0] and tau[1])
+        #Step 2: Find control deflections from thrust forces, roll/pitch moments
+        eff_T1 = max(T1, 0.10) #lower bound at 10% to prevent uninvertible matrix 
+        eff_T2 = max(T2, 0.10)
+        tau_2 = tau[0:2]  # roll and pitch moments (tau[0] and tau[1])
         A2 = np.array([
-            [cx*T1, -cx*T2],
-            [-cy*T1, -cy*T2]
+            [cx*eff_T1, -cx*eff_T2],
+            [-cy*eff_T1, -cy*eff_T2]
         ])
         A2_inv = np.linalg.inv(A2)
 

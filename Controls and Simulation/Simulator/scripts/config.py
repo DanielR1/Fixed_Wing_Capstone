@@ -4,7 +4,7 @@ import numpy as np
 
 # ==================== Physical Constants ====================
 GRAVITY = 9.8  # m/s^2
-
+AIR_DENSITY = 1.23 #kg/m^3
 # ==================== Drone Parameters ====================
 # Mass and Inertia
 MASS = 0.829  # kg
@@ -18,6 +18,9 @@ INERTIA_TENSOR = np.array([
 MOMENT_ARM = 0.14  # meters, distance from center to motor (use for FW)
 MOMENT_COEFF_X = 1 # coefficient for A2 allocation matrix. multiplied by thrust and deflection to get x roll moment
 MOMENT_COEFF_Y = 1 # coefficient for A2 allocation matrix. multiplied by thrust and deflection to get y roll moment
+WING_AREA = 0.0923 #m^2
+MEAN_AERO_CHORD = 0.1759 #m
+
 
 # ==================== Simulation Parameters ====================
 SIMULATION_RATE = 500  # Hz
@@ -56,6 +59,10 @@ Kd_POSITION = np.diag([4, 4, 4])
 Kp_ATTITUDE = np.diag([3.7, 3.7, 3.7])
 Kd_ATTITUDE = np.diag([0.19, 0.19, 0.19])
 LAMBDA_ATTITUDE = np.diag([0.2, 0.2, 0.2])
+#=========== AERO Approximations ==========
+CD_MAX_FLAT = 1.2; #max CD from flat plate 
+CD_0_FLAT = 0.05 #base CD
+
 
 # ==================== Safety Limits ====================
 MIN_ALTITUDE = 0.1  # meters, crash detection threshold

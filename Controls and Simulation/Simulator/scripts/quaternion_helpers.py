@@ -134,6 +134,171 @@ def unit(q):
     
     return q / norm(q)
 
+def slerp(q1, q2, t):
+    """
+    Spherical linear interpolation between two quaternions.
+    
+    Args:
+        q1: First quaternion [w, x, y, z]
+        q2: Second quaternion [w, x, y, z]
+        t: Interpolation weight (0.0 = q1, 1.0 = q2)
+    
+    Returns:
+        Interpolated quaternion [w, x, y, z]
+    """
+    # Normalize input quaternions
+    q1 = unit(np.array(q1))
+    q2 = unit(np.array(q2))
+    
+    # Compute dot product
+    dot = np.dot(q1, q2)
+    
+    # If dot product is negative, negate q2 to take shorter path
+    if dot < 0.0:
+        q2 = -q2
+        dot = -dot
+    
+    # Clamp dot product to avoid numerical issues with arccos
+    dot = np.clip(dot, -1.0, 1.0)
+    
+    # If quaternions are very close, use linear interpolation
+    if dot > 0.9995:
+        result = q1 + t * (q2 - q1)
+        return unit(result)
+    
+    # Calculate angle between quaternions
+    theta = np.arccos(dot)
+    sin_theta = np.sin(theta)
+    
+    # Compute interpolation weights
+    w1 = np.sin((1.0 - t) * theta) / sin_theta
+    w2 = np.sin(t * theta) / sin_theta
+    
+    # Return interpolated quaternion
+    return w1 * q1 + w2 * q2
+
+#----- Euler Angles to Quaternion Conversions -----#
+def euler_ZYX_to_quat(roll, pitch, yaw):
+    """
+    Convert ZYX Euler angles to quaternion.
+    Rotation order: Yaw (Z) -> Pitch (Y) -> Roll (X)
+    
+    Args:
+        roll: Rotation about x-axis (radians)
+        pitch: Rotation about y-axis (radians)
+        yaw: Rotation about z-axis (radians)
+    
+    Returns:
+        Quaternion [w, x, y, z]
+    """
+    cy = np.cos(yaw * 0.5)
+    sy = np.sin(yaw * 0.5)
+    cp = np.cos(pitch * 0.5)
+    sp = np.sin(pitch * 0.5)
+    cr = np.cos(roll * 0.5)
+    sr = np.sin(roll * 0.5)
+    
+    w = cr * cp * cy + sr * sp * sy
+    x = sr * cp * cy - cr * sp * sy
+    y = cr * sp * cy + sr * cp * sy
+    z = cr * cp * sy - sr * sp * cy
+    
+    return np.array([w, x, y, z])
+
+def euler_ZXY_to_quat(roll, pitch, yaw):
+    """
+    Convert ZXY Euler angles to quaternion.
+    Rotation order: Yaw (Z) -> Roll (X) -> Pitch (Y)
+    
+    Args:
+        roll: Rotation about x-axis (radians)
+        pitch: Rotation about y-axis (radians)
+        yaw: Rotation about z-axis (radians)
+    
+    Returns:
+        Quaternion [w, x, y, z]
+    """
+    cy = np.cos(yaw * 0.5)
+    sy = np.sin(yaw * 0.5)
+    cp = np.cos(pitch * 0.5)
+    sp = np.sin(pitch * 0.5)
+    cr = np.cos(roll * 0.5)
+    sr = np.sin(roll * 0.5)
+    
+    w = cr * cp * cy - sr * sp * sy
+    x = sr * cp * cy - cr * sp * sy
+    y = cr * sp * cy + sr * cp * sy
+    z = cr * cp * sy + sr * sp * cy
+    
+    return np.array([w, x, y, z])
+
+#----- Quaternion to Euler Angles Conversions -----#
+def quat_to_euler_ZYX(q):
+    """
+    Convert quaternion to ZYX Euler angles.
+    Rotation order: Yaw (Z) -> Pitch (Y) -> Roll (X)
+    
+    Args:
+        q: Quaternion [w, x, y, z]
+    
+    Returns:
+        (roll, pitch, yaw) in radians
+    """
+    q = unit(q)
+    w, x, y, z = q
+    
+    # Roll (x-axis rotation)
+    sinr_cosp = 2 * (w * x + y * z)
+    cosr_cosp = 1 - 2 * (x * x + y * y)
+    roll = np.arctan2(sinr_cosp, cosr_cosp)
+    
+    # Pitch (y-axis rotation)
+    sinp = 2 * (w * y - z * x)
+    if abs(sinp) >= 1:
+        pitch = np.copysign(np.pi / 2, sinp)  # Use 90 degrees if out of range
+    else:
+        pitch = np.arcsin(sinp)
+    
+    # Yaw (z-axis rotation)
+    siny_cosp = 2 * (w * z + x * y)
+    cosy_cosp = 1 - 2 * (y * y + z * z)
+    yaw = np.arctan2(siny_cosp, cosy_cosp)
+    
+    return roll, pitch, yaw
+
+def quat_to_euler_ZXY(q):
+    """
+    Convert quaternion to ZXY Euler angles.
+    Rotation order: Yaw (Z) -> Roll (X) -> Pitch (Y)
+    
+    Args:
+        q: Quaternion [w, x, y, z]
+    
+    Returns:
+        (roll, pitch, yaw) in radians
+    """
+    q = unit(q)
+    w, x, y, z = q
+    
+    # Roll (x-axis rotation)
+    sinr = 2 * (w * x + y * z)
+    if abs(sinr) >= 1:
+        roll = np.copysign(np.pi / 2, sinr)  # Use 90 degrees if out of range
+    else:
+        roll = np.arcsin(sinr)
+    
+    # Pitch (y-axis rotation)
+    siny_cosr = 2 * (w * y - z * x)
+    cosy_cosr = 1 - 2 * (x * x + y * y)
+    pitch = np.arctan2(siny_cosr, cosy_cosr)
+    
+    # Yaw (z-axis rotation)
+    sinz_cosr = 2 * (w * z - x * y)
+    cosz_cosr = 1 - 2 * (x * x + z * z)
+    yaw = np.arctan2(sinz_cosr, cosz_cosr)
+    
+    return roll, pitch, yaw
+
 #----- Applies Quaternion to Vector -----#
 def quat_apply(quat, vector):
     quat = np.array(quat)

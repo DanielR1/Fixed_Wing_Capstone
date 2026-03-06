@@ -6,6 +6,7 @@
 import numpy as np
 import config
 import aero
+import helper_funcs as help
 
 class dynamics: 
 	def __init__(self, params, dt):
@@ -139,6 +140,7 @@ class dynamics:
 		q = state[6:10]
 		quat_norm = np.linalg.norm(q)
 		state[6:10] = state[6:10] / quat_norm
+		state[13:15] = help.compute_alpha_beta(state)
 		return state
 
 	# Helper function that converts a quaternion to 3x3 rotation matrix
