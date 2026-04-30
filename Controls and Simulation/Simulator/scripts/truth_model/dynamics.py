@@ -5,7 +5,7 @@
 
 import numpy as np
 import config
-import aero
+from truth_model import aero
 import helper_funcs as help
 
 class dynamics: 
@@ -15,7 +15,7 @@ class dynamics:
 		self.g = config.GRAVITY
 		self.J = config.INERTIA_TENSOR
 		self.l = config.MOMENT_ARM
-		self.c = config.DRAG_COEFFICIENT
+		self.c = 0#config.DRAG_COEFFICIENT
 		
 
 	# This is meant to give the rates of each state

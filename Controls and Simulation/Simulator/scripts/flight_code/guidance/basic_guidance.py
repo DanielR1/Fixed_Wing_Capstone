@@ -39,7 +39,7 @@ def get_a_com_bg(state, t):
         else:
             pos_des = np.zeros(3)
 
-    pos_error = state[0:2]-pos_des
+    pos_error = state[0:3]-pos_des
     vel_error = state[3:6]-v_des
 
     a_com_bg = a_des - pos_error*config.Kp_BG - vel_error*config.Kd_BG

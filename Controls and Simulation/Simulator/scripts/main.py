@@ -30,7 +30,7 @@ save_data = config.SAVE_DATA
 # Initial conditions
 t = 0.
 
-state = np.zeros(13) # 13 without trajectory
+state = np.zeros(15) # 13 without trajectory
 f = np.zeros(4)
 
 # Initial position

@@ -24,7 +24,7 @@ def aero_comp(a_com_old, state):
     CZ = (CDMax+CD0)*np.sin(alpha)
     Fx_body = -0.5*rho*V**2*S*CX
     Fz_body = 0.5*rho*V**2*S*CZ #CONVENTION FOR THIS: z points up. might revise later, just add negative
-    a_aero_body = np.array(Fx_body, 0, Fz_body)
+    a_aero_body = np.array([Fx_body, 0, Fz_body])
     a_aero_global = qhelp.quat_to_R(q) @ a_aero_body
     a_com_new = a_com_old - a_aero_global
     return a_com_new

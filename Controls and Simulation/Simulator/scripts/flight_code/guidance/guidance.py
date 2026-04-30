@@ -4,7 +4,7 @@
 
 import numpy as np
 import config
-import basic_guidance as bg
+from flight_code.guidance import basic_guidance as bg
 class Guidance:
     def __init__(self, dt, guid_mode):
         """Initialize guidance system"""

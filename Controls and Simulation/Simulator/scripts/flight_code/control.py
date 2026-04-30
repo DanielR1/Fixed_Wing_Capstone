@@ -5,7 +5,7 @@ import numpy as np
 import math
 import config
 import quaternion_helpers as qhelp
-import aero_comp as ac
+from flight_code import aero_comp as ac
 
 class Controller:
     def __init__(self, dt):
@@ -33,7 +33,7 @@ class Controller:
         (qw, qx, qy, qz) = q
 
         #aero compensation/feedforward
-        a_com = ac.aero_comp(a_com)
+        a_com = ac.aero_comp(a_com, state)
 
         """Compute control inputs based on state and commanded acceleration"""
         m = config.MASS
