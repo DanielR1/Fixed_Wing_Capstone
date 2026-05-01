@@ -6,14 +6,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
+import quaternion_helpers as qhelp
+import os
+import glob
 
-# Update with actual file name in the data director
-file_name = "data_2025-06-05_09-40-45.csv"
-# Load in data as giant matrix
-#data = np.loadtxt("C:/Users/ncv72/Documents/"+file_name, delimiter=',')
+# Find the most recent data file in either data/ or ../data/
+list_of_files = glob.glob('data/*.csv') + glob.glob('../data/*.csv')
+if not list_of_files:
+    raise FileNotFoundError("No data files found.")
+file_name = max(list_of_files, key=os.path.getmtime)
+print(f"Plotting data from: {file_name}")
+
+#Override
+#file_name = "data_2025-06-05_09-40-45.csv"
 #close all
 plt.close('all')
-data = np.loadtxt("../data/"+file_name, delimiter=',')
+data = np.loadtxt(file_name, delimiter=',')
 t = data[:, 0]
 x = data[:, 1]
 y = data[:, 2]
@@ -37,9 +45,9 @@ f3 = data[:, 16]
 f4 = data[:, 17]
 
 # Desired trajectory
-rx = data[:, 18]
-ry = data[:, 19]
-rz = data[:, 20]
+#rx = data[:, 18]
+#ry = data[:, 19]
+#rz = data[:, 20]
 
 
 plt.figure(1)
@@ -95,29 +103,13 @@ plt.title('Motor Forces')
 plt.grid()
 
 
-def quaternion_to_euler(q):
-    q0, q1, q2, q3 = q
-
-    # Roll (x-axis rotation)
-    roll = math.atan2(2.0 * (q0 * q1 + q2 * q3), 1.0 - 2.0 * (q1 * q1 + q2 * q2))
-
-    # Pitch (y-axis rotation)
-    pitch = math.asin(2.0 * (q0 * q2 - q3 * q1))
-
-    # Yaw (z-axis rotation)
-    yaw = math.atan2(2.0 * (q0 * q3 + q1 * q2), 1.0 - 2.0 * (q2 * q2 + q3 * q3))
-
-    return roll, pitch, yaw
-
-
 
 #plotting euler angles for better visualization
 roll = np.zeros(len(qw))
 pitch = np.zeros(len(qw))
 yaw = np.zeros(len(qw))
 for i in range(len(qw)):
-    roll[i], pitch[i], yaw[i] = quaternion_to_euler([qw[i], qx[i], qy[i], qz[i]])
-
+    roll[i], pitch[i], yaw[i] = qhelp.quat_to_euler_ZXY([qw[i], qx[i], qy[i], qz[i]])
 plt.figure(6)
 plt.plot(t, np.rad2deg(roll), 'r', label='roll')
 plt.plot(t, np.rad2deg(pitch), 'b', label='pitch')
@@ -129,21 +121,21 @@ plt.grid()
 plt.legend()
 
 
-plt.figure(7) #desired trajectory
-plt.plot(t, rx, 'r', label='rx')
-plt.plot(t, ry, 'b', label='ry')
-plt.plot(t, rz, 'g', label='rz')
-plt.xlabel('Time (s)')
-plt.ylabel('Position (m)')
-plt.title('Trajectory')
-plt.legend()
-plt.grid()
+# plt.figure(7) #desired trajectory
+# plt.plot(t, rx, 'r', label='rx')
+# plt.plot(t, ry, 'b', label='ry')
+# plt.plot(t, rz, 'g', label='rz')
+# plt.xlabel('Time (s)')
+# plt.ylabel('Position (m)')
+# plt.title('Trajectory')
+# plt.legend()
+# plt.grid()
 
 
 fig = plt.figure(8)
 ax = fig.add_subplot(111, projection='3d')
 ax.plot(x, y, z, label='Actual Trajectory', color='blue')
-ax.plot(rx, ry, rz, label='Desired Trajectory', color='red', linestyle='--')
+#ax.plot(rx, ry, rz, label='Desired Trajectory', color='red', linestyle='--')
 ax.set_xlabel('X Position (m)')
 ax.set_ylabel('Y Position (m)')
 ax.set_zlabel('Z Position (m)')

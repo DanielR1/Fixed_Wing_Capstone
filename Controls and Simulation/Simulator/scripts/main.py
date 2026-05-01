@@ -31,7 +31,7 @@ save_data = config.SAVE_DATA
 t = 0.
 
 state = np.zeros(15) # 13 without trajectory
-f = np.zeros(4)
+ctrl = np.zeros(4)
 
 # Initial position
 x0, y0, z0 = config.INITIAL_POSITION
@@ -81,8 +81,8 @@ nav = navigation.Navigation(dt)
 
 # Initialize data array that contains useful info (probably should add more)
 data = np.append(t,state)
-data = np.append(data,f) # data array has time, state (13 deg) and motor forces (4 deg)
-data = np.append(data,[x0,y0, z0]) #append trajectory
+data = np.append(data,ctrl) # data array has time, state (13 deg) and motor forces (4 deg)
+#data = np.append(data,[x0,y0, z0]) #append trajectory
 
 
 
@@ -100,10 +100,6 @@ while running:
     ctrl_in = controller.get_control_inputs(estimated_state, a_com, t)
 
 
-    #f = f + np.array([m*g/4, m*g/4,m*g/4,m*g/4]) #add to also counter mass weight (nvm don't use this)
-    # Run inner-loop controller to get motor forces 
-   # f = [3, 3, 3, 3]
-
     # Propagate dynamics with control inputs
     state = dyn.propagate(state, ctrl_in, dt)
  
@@ -118,8 +114,8 @@ while running:
 
     # Update data array (this can probably be done in a much cleaner way...)
     tmp = np.append(t,state)
-    tmp = np.append(tmp,f)
-    tmp = np.append(tmp, r_d)
+    tmp = np.append(tmp,ctrl_in)
+    #tmp = np.append(tmp, r_d)
     data = np.vstack((data,tmp))
 
     # Update time

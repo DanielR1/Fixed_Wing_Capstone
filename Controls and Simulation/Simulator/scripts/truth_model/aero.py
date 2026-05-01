@@ -63,15 +63,6 @@ def getAeroForcesMoments(state, ctrl_in):
     FY = 0  # No side force (longitudinal only)
     MY = Pitch_moment  # Pitching moment about body y-axis
     
-    #Calulcating extra moments from control input
-
-    (T1, T2, delta_1, delta_2) = ctrl_in
-    cx = config.MOMENT_COEFF_X
-    cy = config.MOMENT_COEFF_Y
-    A2 = np.array([
-            [cx*T1, -cx*T2],
-            [-cy*T1, -cy*T2]
-        ])
     # Return forces [FX, FY, FZ] and moments [MX, MY, MZ]
     return np.array([FX, FY, FZ, 0, MY, 0])
 

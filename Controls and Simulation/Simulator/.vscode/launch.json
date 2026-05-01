@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "internalConsole",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Python: Run main.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/main.py",
+            "console": "internalConsole",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Python: Run plotter.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/plotter.py",
+            "console": "internalConsole",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

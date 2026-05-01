@@ -129,7 +129,7 @@ class Controller:
 
         
         # Convert to forces
-        l = config.MOMENT_ARM
+        l_y = config.THRUST_MOMENT_ARM_Y_m
         cx = config.MOMENT_COEFF_X
         cy = config.MOMENT_COEFF_Y
 
@@ -137,29 +137,34 @@ class Controller:
         #Step 1: Find thrust forces from yaw moment and total thrust
         tau_1 = np.array([tau[2], T_com])  # tau[2] is yaw moment
         A1 = np.array([
-            [l, -l],
+            [l_y, -l_y],
             [1,1]
         ])
         A1_inv = np.linalg.inv(A1)
 
         [T1, T2] = A1_inv @ tau_1
+        Tmax_N = config.MAX_THRUST_ONE_MOTOR_N
 
-        # Ensure physical limits (motors can't spin backwards in most setups)
-        T1 = max(0.0, T1)
-        T2 = max(0.0, T2)
+        # Bound Motors and convert to normal float (min and max thrust)
+        T1 = float(min(max(0.1, T1),Tmax_N))
+        T2 = float(min(max(0.1, T2),Tmax_N))
 
-        #Step 2: Find control deflections from thrust forces, roll/pitch moments
-        eff_T1 = max(T1, 0.10) #lower bound at 10% to prevent uninvertible matrix 
-        eff_T2 = max(T2, 0.10)
+
+
         tau_2 = tau[0:2]  # roll and pitch moments (tau[0] and tau[1])
         A2 = np.array([
-            [cx*eff_T1, -cx*eff_T2],
-            [-cy*eff_T1, -cy*eff_T2]
+            [cx*T1, -cx*T2],
+            [-cy*T1, -cy*T2]
         ])
         A2_inv = np.linalg.inv(A2)
 
-        [delta_1, delta_2] = A2_inv @ tau_2
+        [delta_1, delta_2] = A2_inv @ tau_2 #This is in RADIANS
+        #convert to normal float and bound
+        min_delta = config.MIN_DEFLECTION_TED_RAD
+        max_delta = config.MAX_DEFLECTION_TED_RAD
 
+        delta_1 = float(min(max(min_delta, delta_1),max_delta))
+        delta_2 = float(min(max(min_delta, delta_2),max_delta))
         #Combine
         ctrl_in = [T1, T2, delta_1, delta_2]
 
