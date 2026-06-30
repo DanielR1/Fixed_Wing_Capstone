@@ -19,9 +19,10 @@ def aero_comp(a_com_old, state):
 
     #Flat plate approximations for feedforward, with parasitic drag term CD0
     #assuming no sideslip aero due to slim body
-    (alpha,beta) = state[13:15]
-    CX = CD0*np.cos(alpha)
-    CZ = (CDMax+CD0)*np.sin(alpha)
+    (alpha,beta) = state[13:15]    # degrees
+    alpha_rad = np.radians(alpha)  # radians, for trig
+    CX = CD0*np.cos(alpha_rad)
+    CZ = (CDMax+CD0)*np.sin(alpha_rad)
     Fx_body = -0.5*rho*V**2*S*CX
     Fz_body = 0.5*rho*V**2*S*CZ #CONVENTION FOR THIS: z points up. might revise later, just add negative
     a_aero_body = np.array([Fx_body, 0, Fz_body])

@@ -38,12 +38,18 @@ class Controller:
         """Compute control inputs based on state and commanded acceleration"""
         m = config.MASS
         g = config.GRAVITY
-        
+
+        # Gravity feed-forward: turn the guidance kinematic-acceleration command into a thrust
+        # specific-force command. Global z is up, so the thrust must supply +g along z to hold
+        # altitude. In hover this drives a_com -> [0,0,g], so body-x (thrust axis) points
+        # straight up. aero_comp() above already subtracted the predicted aero specific force.
+        a_com = a_com + np.array([0.0, 0.0, g])
+
         #APPROACH - blending hover and fixed-wing desired quaternions based on speed.
 
         # Hover mode desired quaternion
         T_com_hover = m*np.linalg.norm(a_com) #commanded total thrust
-        e3 = np.array([0, 0, 1])
+        e3 = np.array([1, 0, 0])
         a_hat = a_com/np.linalg.norm(a_com)
         q_d_r = 1+np.dot(e3,a_hat)
         q_d_i = np.cross(e3,a_hat)

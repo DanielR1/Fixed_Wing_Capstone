@@ -14,7 +14,8 @@ CM_table = aero_data[:, 8]     # Ninth column is Cm
 #Computes Aero Forces and Moments from current state and control deflections using database lookup
 #for now - assume aero only affects longitudinally. i.e. no side force or roll/yaw moments from aero.
 def getAeroForcesMoments(state, ctrl_in):
-    alpha = state[13]
+    alpha = state[13]              # angle of attack, DEGREES (used for table lookup + branch logic below)
+    alpha_rad = np.radians(alpha)  # radians, for trig (flat-plate coeffs + body-axis force projection)
     vx = state[3]
     vy = state[4]
     vz = state[5]
@@ -27,8 +28,8 @@ def getAeroForcesMoments(state, ctrl_in):
     CDMax_fp = config.CD_MAX_FLAT
     CD0_fp = config.CD_0_FLAT
     #flat plate - used in sim for high AOA
-    CL_fp = 0.5*CDMax_fp*np.sin(2*alpha)
-    CD_fp = CDMax_fp*(np.sin(alpha))**2+CD0_fp
+    CL_fp = 0.5*CDMax_fp*np.sin(2*alpha_rad)
+    CD_fp = CDMax_fp*(np.sin(alpha_rad))**2+CD0_fp
     CM_fp = 0
     #if a nice AOA - use only xflr data
     if (alpha >= -5) and (alpha<= 18):
@@ -58,8 +59,8 @@ def getAeroForcesMoments(state, ctrl_in):
     # Lift is perpendicular to velocity, Drag is parallel to velocity
     # In body frame: FX (axial), FZ (normal)
     # alpha is angle between body x-axis and velocity vector
-    FX = -Drag * np.cos(alpha) - Lift * np.sin(alpha)  # Axial force (along body x)
-    FZ = -Drag * np.sin(alpha) + Lift * np.cos(alpha)  # Normal force (along body z)
+    FX = -Drag * np.cos(alpha_rad) - Lift * np.sin(alpha_rad)  # Axial force (along body x)
+    FZ = -Drag * np.sin(alpha_rad) + Lift * np.cos(alpha_rad)  # Normal force (along body z)
     FY = 0  # No side force (longitudinal only)
     MY = Pitch_moment  # Pitching moment about body y-axis
     

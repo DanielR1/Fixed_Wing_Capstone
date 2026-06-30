@@ -1,0 +1,24 @@
+,IMPERIAL (in/in^2),METRIC (m/m^2)
+"Wing area (in^2, m^2)",143.0654406,0.0923
+wingspan:,20.866153,0.53
+Wing sweep (deg),590.5515,15
+Mean Aero Chord,6.92520059,0.1759
+Taper Ratio,27.55907,0.7
+Root Chord:,8.06693349,0.2049
+Tip Chord:,5.64567234,0.1434
+Aspect Ratio,119.8425844,3.044
+,,
+Airfoil: NACA 4415,CLmax = 1.5,CL_cruise = 1
+,,
+,,
+Flap Ratio,Chord,Span
+Elevon,40% (the back),60% - in the middle  (20% off in root and tip)
+,,
+WEIGHT,,
+Total ,560g,1.653 lb
+,,
+Total Thurst (2motors),1.35kg max,
+,,
+Propeller Diameter,5 in,
+,,
+Center of gravity,Assume quarter chord MAC for now,

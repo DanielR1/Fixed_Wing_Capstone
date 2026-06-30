@@ -29,7 +29,7 @@ class dynamics:
 		#get all forces and moments
 		FM_aero = aero.getAeroForcesMoments(state, ctrl_in) #not including contorl deflections
 		FM_control = self.get_control_forces_moments_body(ctrl_in)
-		FM_Total = FM_aero-FM_control
+		FM_Total = FM_aero+FM_control
 		Force_body_N = FM_Total[0:3]
 		
 		# Velocities
