@@ -1,5 +1,4 @@
 *.csv
 *.pyc
-*.pyc
-/Controls and Simulation/Simulator/scripts/flight_code/__pycache__
+__pycache__/
 .DS_Store

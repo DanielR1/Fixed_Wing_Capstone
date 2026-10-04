@@ -48,7 +48,7 @@ Controls and Simulation/
     └── scripts/
         ├── main.py                ← simulation entry point (the 6-DOF loop)
         ├── config.py              ← ALL parameters, gains, limits, initial conditions
-        ├── plotter.py             ← plots the most-recent data/*.csv
+        ├── plotter.py             ← plots the most-recent data/*.csv in ONE tabbed Tk window
         ├── quaternion_helpers.py  ← quat math, SLERP, Euler<->quat, quat<->R
         ├── helper_funcs.py        ← compute_alpha_beta() from state
         ├── rates.py               ← (empty placeholder)
@@ -89,6 +89,13 @@ Or use the VS Code launch configs in `Simulator/.vscode/launch.json`
 
 - Output columns (20): `t, x,y,z, vx,vy,vz, qw,qx,qy,qz, wx,wy,wz, alpha,beta, T1,T2,delta1,delta2`
   (`t` + 15 state elements + 4 controls). `plotter.py` reads this layout and plots altitude as −z.
+- `plotter.py` opens a **single external window with one tab per plot** (Tk `ttk.Notebook`, matplotlib
+  `TkAgg`; no extra installs — `tkinter` ships with the venv's Python). Each tab has the standard
+  zoom/pan/save toolbar. Figures are built as plain `Figure` objects via `new_fig(title)` and shown
+  together by `show_tabbed()`; add a new plot by calling `new_fig('Tab name')`.
+- The **3D Trajectory** tab uses **equal scale on all three axes** (`set_axes_equal`, so the path has
+  its real-world shape) and plots **East (x) / North (y) / Altitude (z)** — a right-handed triad so
+  turns aren't mirrored. Note this swaps the first two axes relative to the NED state order.
 - `config.SAVE_DATA = True` controls whether a CSV is written.
 
 ## 5. State & frame conventions (read before editing dynamics/control)
