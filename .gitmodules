@@ -1,0 +1,3 @@
+[submodule "Controls and Simulation/FW_Simulator"]
+	path = Controls and Simulation/FW_Simulator
+	url = https://github.com/DanielR1/FW_Simulator.git
