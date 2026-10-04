@@ -40,10 +40,11 @@ class Controller:
         g = config.GRAVITY
 
         # Gravity feed-forward: turn the guidance kinematic-acceleration command into a thrust
-        # specific-force command. Global z is up, so the thrust must supply +g along z to hold
-        # altitude. In hover this drives a_com -> [0,0,g], so body-x (thrust axis) points
-        # straight up. aero_comp() above already subtracted the predicted aero specific force.
-        a_com = a_com + np.array([0.0, 0.0, g])
+        # specific-force command. NED gravity is +g along +z (down), so the thrust must supply
+        # -g along z to hold altitude. In hover this drives a_com -> [0,0,-g], so body-x (the
+        # thrust axis) points straight up (-z). aero_comp() above already subtracted the
+        # predicted aero specific force.
+        a_com = a_com - np.array([0.0, 0.0, g])
 
         #APPROACH - blending hover and fixed-wing desired quaternions based on speed.
 

@@ -59,10 +59,11 @@ def getAeroForcesMoments(state, ctrl_in):
     # Lift is perpendicular to velocity, Drag is parallel to velocity
     # In body frame: FX (axial), FZ (normal)
     # alpha is angle between body x-axis and velocity vector
-    FX = -Drag * np.cos(alpha_rad) - Lift * np.sin(alpha_rad)  # Axial force (along body x)
-    FZ = -Drag * np.sin(alpha_rad) + Lift * np.cos(alpha_rad)  # Normal force (along body z)
+    # FRD body axes (x fwd, y right, z down), alpha = atan2(w,u). Lift acts toward -z (up).
+    FX = -Drag * np.cos(alpha_rad) + Lift * np.sin(alpha_rad)  # Axial force (along body x)
+    FZ = -Drag * np.sin(alpha_rad) - Lift * np.cos(alpha_rad)  # Normal force (along body z, +z down)
     FY = 0  # No side force (longitudinal only)
-    MY = Pitch_moment  # Pitching moment about body y-axis
+    MY = Pitch_moment  # Pitching moment about body y-axis (verify XFLR5 Cm sign = nose-up positive)
     
     # Return forces [FX, FY, FZ] and moments [MX, MY, MZ]
     return np.array([FX, FY, FZ, 0, MY, 0])

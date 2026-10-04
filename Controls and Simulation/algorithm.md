@@ -27,16 +27,19 @@ One simulation tick (`scripts/main.py`, the `while running:` loop, 500 Hz):
 | Dynamics | `truth_model/dynamics.py`, `aero.py` | propagated state |
 
 Loop rate `SIMULATION_RATE = 500 Hz`, `dt = 0.002 s`. Integration is forward Euler.
-The loop stops at `t > CRASH_CHECK_TIME (3.0 s)` or on crash (`z < MIN_ALTITUDE`).
+The loop stops at `t > CRASH_CHECK_TIME (3.0 s)` or on crash (`z > −MIN_ALTITUDE`, NED ground).
 
 ---
 
 ## 1. Notation & frames
 
-- **Global frame G:** inertial, **z-up** (ENU-like). Gravity `g = 9.8 m/s²` acts in −z.
-- **Body frame B:** x out the nose = **thrust axis**; y, z complete the triad.
-- **Attitude quaternion** `q = [qw, qx, qy, qz]`, scalar-first, **body→global**.
-  `R = quat_to_R(q)` rotates a body vector into global: `v_G = R · v_B`.
+**Convention: NED world + FRD body.**
+
+- **World frame G (NED):** x = North, y = East, **z = Down**. Gravity `g = 9.8 m/s²` acts along **+z**. Altitude = −z.
+- **Body frame B (FRD):** x = forward (**nose / thrust axis**), y = right, z = down.
+- **Attitude quaternion** `q = [qw, qx, qy, qz]`, scalar-first, **body→world**.
+  `R = quat_to_R(q)` rotates a body vector into world: `v_G = R · v_B`.
+  Identity `[1,0,0,0]` = level forward flight heading North; nose-up hover ≈ `[0.7071,0,0.7071,0]` (+90° about body-y).
 - **Angular velocity** `ω = [wx, wy, wz]` in body axes (rad/s).
 - **Aero angles:** `alpha = atan2(w_b, u_b)`, `beta = atan2(v_b, √(u_b²+w_b²))`, with
   `v_B = Rᵀ v_G` (`helper_funcs.compute_alpha_beta`). **Stored in degrees** (the XFLR5 table
@@ -47,7 +50,7 @@ The loop stops at `t > CRASH_CHECK_TIME (3.0 s)` or on crash (`z < MIN_ALTITUDE`
 ```
 [ x  y  z | vx vy vz | qw qx qy qz | wx wy wz | alpha beta ]
    0  1  2    3  4  5    6  7  8  9   10 11 12     13    14
-  ── pos ──  ─ vel(G) ─  ─ quat B→G ─  ─ ω(B) ─   ─ deg ──
+  ─ pos(NED) ─ vel(NED) ─ quat B→G ─  ─ ω(B) ─   ─ deg ──
 ```
 
 **Control vector** `ctrl_in = [T1, T2, delta1, delta2]`: motor thrusts (N, L=1/R=2) and elevon
@@ -103,7 +106,7 @@ V   = ‖v_G‖
 CX  = CD0 · cos(αr)                     # axial coeff
 CZ  = (CDmax + CD0) · sin(αr)           # normal coeff
 Fx_body = −½ ρ V² S · CX
-Fz_body = +½ ρ V² S · CZ               # (z-up convention noted in code)
+Fz_body = −½ ρ V² S · CZ               # NED/FRD: +α normal force acts up (−z)
 a_aero_G = R(q) · [Fx_body, 0, Fz_body]
 a_com  ←  a_com − a_aero_G
 ```
@@ -116,12 +119,12 @@ a_com  ←  a_com − a_aero_G
 ## 4. Acceleration → desired attitude quaternion (`control.py`)
 
 First the guidance **kinematic** acceleration command is converted into a **thrust specific-force**
-command by compensating known forces: subtract the predicted aero specific force (§3), then add
-gravity (global z is up, so the thrust must supply +g along z):
+command by compensating known forces: subtract the predicted aero specific force (§3), then remove
+gravity (NED gravity is +g along +z, so the thrust must supply −g along z to hold altitude):
 
 ```
 a_com ← aero_comp(a_com, state)        # §3: subtract predicted aero
-a_com ← a_com + [0, 0, g]              # gravity feed-forward (hover ⇒ a_com = [0,0,g])
+a_com ← a_com − [0, 0, g]              # gravity feed-forward, NED (hover ⇒ a_com = [0,0,−g] = up)
 ```
 
 Gravity comp lives in the controller (not guidance) so guidance stays a pure kinematic command,
@@ -148,7 +151,8 @@ q_d_hover   = [q_d_hover_r, q_d_hover_v] / √(2 (1 + e1·a_hat)),  then normali
 ```
 
 This makes `R(q_d_hover) · e1 = a_hat`, i.e. it points the **body x-axis (the thrust axis)** along
-the commanded thrust direction — consistent with the dynamics/allocation thrust model.
+the commanded thrust direction — consistent with the dynamics/allocation thrust model. In hover
+`a_hat = [0,0,−1]` (NED up), giving `q_d_hover ≈ [0.7071, 0, 0.7071, 0]` (nose-up).
 
 ### 4.3 Fixed-wing desired quaternion (coordinated bank-to-turn)
 
@@ -249,7 +253,7 @@ FM_aero    = aero.getAeroForcesMoments(state, ctrl_in)         # [Fx,Fy,Fz, 0,My
 FM_control = get_control_forces_moments_body(ctrl_in)          # [T1+T2,0,0, τx,τy,τz] body
 FM_Total   = FM_aero + FM_control                              # aero + thrust/control, body frame
 
-# Linear:  v̇_G = R · F_body / m ,  then  v̇z −= g
+# Linear:  v̇_G = R · F_body / m ,  then  v̇z += g   (NED: gravity along +z)
 # Quaternion kinematics:  q̇ = ½ Ω(ω) · q
 # Rotational (Euler):     ω̇ = J⁻¹ ( τ − ω × Jω )
 ```
@@ -277,9 +281,9 @@ Lift/drag/pitching-moment from a blended model vs `alpha` (degrees):
 
 ```
 L  = ½ ρ V² S · CL ,  D = ½ ρ V² S · CD ,  M = ½ ρ V² S · c_mac · Cm
-Fx = −D cos α − L sin α      # body axial
-Fz = −D sin α + L cos α      # body normal
-return [Fx, 0, Fz, 0, M, 0]
+Fx = −D cos α + L sin α      # body axial (FRD)
+Fz = −D sin α − L cos α      # body normal; lift acts toward −z (up)
+return [Fx, 0, Fz, 0, M, 0]   # verify Cm sign = nose-up positive about +y
 ```
 
 `AERO_XFLR5.tsv` columns: `alpha, Beta, CL, CDi, CDv, CD, CY, Cl, Cm, Cn, Cni, QInf, XCP`
@@ -294,26 +298,29 @@ Forward **Euler**: `state[0:13] += dt · rates(...)`. Then renormalize the quate
 
 ## 8. Open questions & known discrepancies
 
-**Resolved** (kept here for history): thrust-axis convention (hover quaternion now maps body-x
-→ `a_hat`, §4.2), force sign in `rates` (`FM_aero + FM_control`, §7.1), alpha/beta units (degrees
-for table lookup, converted to radians for all trig), and gravity feed-forward (added in
-`control.py`, §4). The items below are still open — **confirm intent before changing; several are
-convention/design choices, not obvious bugs.**
+**Resolved** (kept here for history): frame convention (**NED world + FRD body** throughout —
+gravity +z §7.1, lift toward −z §7.3, gravity feed-forward −g §4, hover start attitude); thrust-axis
+convention (hover quaternion maps body-x → `a_hat`, §4.2); force sign in `rates`
+(`FM_aero + FM_control`, §7.1); alpha/beta units (degrees for table lookup, radians for all trig);
+and `plotter.py` (correct 20-column map, altitude plotted as −z, broken animation removed).
+The items below are still open — **confirm intent before changing; several are convention/design
+choices, not obvious bugs.**
 
-1. **Guidance z-setpoint = 0.** `basic_guidance` only shapes the x-axis; its implied position
-   setpoint is `[…, 0, 0]`, so from the `z = 1 m` start the position PD commands a descent toward
-   the ground. Combined with #2 this is why the sim currently descends and trips the crash check.
+1. **Guidance z-setpoint = 0.** `basic_guidance` only shapes the x (North) axis; its implied
+   position setpoint is `[…, 0, 0]`, and in NED **z=0 is the ground**, so from the `z = −1 m`
+   (1 m altitude) start the position PD commands a descent into the ground — why the sim descends
+   and trips the crash check. For an altitude-hold/hover test set the z setpoint to the target
+   altitude (e.g. `−1`).
 
-2. **Initial attitude vs hover.** `INITIAL_QUATERNION = [1,0,0,0]` puts body +x along global +x
-   (nose horizontal). With gravity feed-forward, hover wants body-x pointing **up**, so a ~90°
-   attitude slew is demanded at t=0. Confirm the intended start attitude / maneuver.
+2. **Verify `aero.py` Cm sign.** Lift/drag are now FRD-correct (§7.3), but confirm the XFLR5 `Cm`
+   column is nose-up-positive about +y before trusting the pitch response.
 
 3. **`aero_comp` units.** §3 subtracts an aero **force** (N) from an acceleration command (m/s²)
    without dividing by mass — likely should be `a_com − a_aero_global / m`.
 
-4. **`plotter.py` stale column map.** It assumes a 13-element state, but data rows now carry 15
-   (alpha, beta added). Columns 14–19 are `[alpha, beta, T1, T2, δ1, δ2]`, so the "Motor Forces"
-   figure actually plots alpha/beta/T1/T2 and the elevon deflections are never plotted.
+4. **FW bank-to-turn (§4.3) unvalidated in NED.** The coordinated-turn construction (`phi_d`,
+   ZXY-Euler `q_d_fw`) was carried over unchanged; validate signs in forward flight (only active
+   above the `V_min = 2 m/s` blend).
 
 5. **Mass mismatch (deferred).** `config.MASS = 0.829 kg` vs CSV "Total 560 g" (CSV row is itself
    inconsistent: 560 g ≠ 1.653 lb). Scales every force↔acceleration conversion.
@@ -347,9 +354,9 @@ convention/design choices, not obvious bugs.**
 | Limits | MAX_THRUST_ONE_MOTOR_N | 6.62 N |
 | Limits | MIN/MAX_DEFLECTION_TED_RAD | ±20° |
 | Sim | SIMULATION_RATE / DT / FINAL_TIME | 500 Hz / 0.002 s / 3.4 s |
-| Init | POSITION / VELOCITY | [0,0,1] m / [0,0,0] |
-| Init | QUATERNION / ANGULAR_VELOCITY | [1,0,0,0] / [0,0,0] |
-| Target | FINAL_POSITION | [1, −1, 0.6] m |
+| Init | POSITION / VELOCITY | [0,0,−1] m (1 m alt, NED) / [0,0,0] |
+| Init | QUATERNION / ANGULAR_VELOCITY | [0.7071,0,0.7071,0] (nose-up hover) / [0,0,0] |
+| Target | FINAL_POSITION | [1, −1, −0.6] m (NED) |
 | Guidance gains | Kp_BG / Kd_BG | diag(12) / diag(4) |
 | Attitude gains | Kp_ATTITUDE / Kd_ATTITUDE / LAMBDA | diag(3.7) / diag(0.19) / diag(0.2) |
 | Aero (flat plate) | CD_MAX_FLAT / CD_0_FLAT | 1.2 / 0.05 |

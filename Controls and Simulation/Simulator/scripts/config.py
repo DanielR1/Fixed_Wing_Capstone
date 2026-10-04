@@ -32,28 +32,31 @@ DT = 1.0 / SIMULATION_RATE  # time step
 FINAL_TIME = 3.4  # seconds
 
 # ==================== Initial Conditions ====================
-INITIAL_POSITION = [0, 0, 1]  # [x, y, z] in meters
+# NED world frame: x North, y East, z Down. Altitude = -z (so 1 m up is z = -1).
+INITIAL_POSITION = [0, 0, -1]  # [x, y, z] in meters (z = -1 -> 1 m above ground)
 INITIAL_VELOCITY = [0, 0, 0]  # [vx, vy, vz] in m/s
-INITIAL_QUATERNION = [1, 0, 0, 0]  # [qw, qx, qy, qz] - upright orientation
+# Nose-up tailsitter hover: body-x (nose/thrust) points up (-z world). This is a +90 deg rotation
+# about body-y from identity. Identity [1,0,0,0] would be level forward flight heading North.
+INITIAL_QUATERNION = [0.70710678, 0, 0.70710678, 0]  # [qw, qx, qy, qz] - nose-up hover (FRD/NED)
 INITIAL_ANGULAR_VELOCITY = [0, 0, 0]  # [wx, wy, wz] in rad/s
 
 # ==================== Target/Waypoint Parameters ====================
 # Final target position
-FINAL_POSITION = [1, -1, 0.6]  # [x, y, z] in meters
+FINAL_POSITION = [1, -1, -0.6]  # [x, y, z] in meters (NED: z = -0.6 -> 0.6 m altitude)
 
 # Gate parameters
 GATE_ANGLE = 60 * np.pi / 180  # radians
 GATE_VELOCITY = 2  # m/s, velocity through gate
 GATE_HEIGHT = 1  # meters, height off the ground
 TIME_TO_GATE = 1.2  # seconds
-GATE_POSITION = [0, 0, GATE_HEIGHT]  # [x, y, z] in meters
+GATE_POSITION = [0, 0, -GATE_HEIGHT]  # [x, y, z] in meters (NED: altitude = -z). Legacy/unused path.
 
 
 # ==================== Guidance Gains ====================
 
 #PD gains on basic guidance:
-Kp_BG = np.diag([12, 12, 12])
-Kd_BG = np.diag([4,4,4])
+Kp_BG = np.diag([12, 12, 30])
+Kd_BG = np.diag([4,4,12])
 # ==================== Controller Gains ====================
 # Position controller
 Kp_POSITION = np.diag([12, 12, 12])
@@ -69,7 +72,7 @@ CD_0_FLAT = 0.05 #base CD
 
 
 # ==================== Safety Limits ====================
-MIN_ALTITUDE = 0.1  # meters, crash detection threshold
+MIN_ALTITUDE = 0.1  # meters above ground; NED crash test is z > -MIN_ALTITUDE (see main.py)
 CRASH_CHECK_TIME = 3.0  # seconds, don't check for crash before this time
 
 # ==================== Data Saving ====================

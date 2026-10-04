@@ -43,7 +43,7 @@ class dynamics:
 		# dvz = R[2,0] * T  / self.m - self.g
 
 		[dvx, dvy, dvz] = R @ Force_body_N #accelerations in global coordinates
-		dvz = dvz-self.g #correct for gravity
+		dvz = dvz+self.g #NED: gravity acts along +z (down)
 
 		# Orientation
 		wx, wy, wz = state[10], state[11], state[12]

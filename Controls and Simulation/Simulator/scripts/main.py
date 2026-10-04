@@ -103,8 +103,9 @@ while running:
     # Propagate dynamics with control inputs
     state = dyn.propagate(state, ctrl_in, dt)
  
-    # If z to low then indicate crash and end simulation
-    if state[2] < config.MIN_ALTITUDE and t > config.CRASH_CHECK_TIME:
+    # If too low then indicate crash and end simulation.
+    # NED: z is down, altitude = -z, so "too low" means z has risen to within MIN_ALTITUDE of ground (z=0).
+    if state[2] > -config.MIN_ALTITUDE and t > config.CRASH_CHECK_TIME:
         print("CRASH!!!")
         break
         #override

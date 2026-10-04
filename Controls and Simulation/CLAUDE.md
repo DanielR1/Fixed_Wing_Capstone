@@ -88,26 +88,31 @@ Or use the VS Code launch configs in `Simulator/.vscode/launch.json`
 ("Python: Run main.py", "Python: Run plotter.py"). They set `cwd` to `Simulator/`.
 
 - Output columns (20): `t, x,y,z, vx,vy,vz, qw,qx,qy,qz, wx,wy,wz, alpha,beta, T1,T2,delta1,delta2`
-  (`t` + 15 state elements + 4 controls). Note `plotter.py` still assumes the old 13-element state,
-  so its control-channel indices are off by two (see §8).
+  (`t` + 15 state elements + 4 controls). `plotter.py` reads this layout and plots altitude as −z.
 - `config.SAVE_DATA = True` controls whether a CSV is written.
 
 ## 5. State & frame conventions (read before editing dynamics/control)
+
+**Convention: NED world + FRD body.** World axes are **x = North, y = East, z = Down** (gravity
+acts along **+z**; altitude = **−z**). Body axes are **x = forward (nose / thrust axis), y = right,
+z = down**. So identity quaternion `[1,0,0,0]` = **level forward flight heading North**, and nose-up
+tailsitter **hover ≈ `[0.7071, 0, 0.7071, 0]`** (a +90° pitch about body-y). The vehicle starts in
+the (non-identity) hover attitude.
 
 **State vector** (`main.py` builds a 15-element array; dynamics integrate the first 13):
 
 | idx | symbol | meaning | frame / units |
 |-----|--------|---------|---------------|
-| 0–2 | x, y, z | position | global, meters (**z is up**) |
-| 3–5 | vx, vy, vz | velocity | global, m/s |
-| 6–9 | qw, qx, qy, qz | attitude quaternion (body→global) | scalar-first `[w,x,y,z]` |
-| 10–12 | wx, wy, wz | angular velocity | **body**, rad/s |
+| 0–2 | x, y, z | position | world NED, meters (**z is down**; altitude = −z) |
+| 3–5 | vx, vy, vz | velocity | world NED, m/s |
+| 6–9 | qw, qx, qy, qz | attitude quaternion (body→world) | scalar-first `[w,x,y,z]` |
+| 10–12 | wx, wy, wz | angular velocity | **body (FRD)**, rad/s |
 | 13 | alpha | angle of attack | **degrees** |
 | 14 | beta | sideslip | **degrees** |
 
-- **Global frame is z-up** (gravity acts in −z; altitude = z; crash when z < `MIN_ALTITUDE`). ENU-like, *not* NED.
-- **Body frame:** x out the nose / thrust axis, y, z. `alpha = atan2(w_body, u_body)`, `beta = atan2(v_body, sqrt(u²+w²))`. Both **stored in degrees** (the XFLR5 table lookup uses degrees); converted to radians at every trig site.
-- **Quaternion is scalar-first `[w,x,y,z]`**, represents body→global rotation (`quat_to_R`).
+- **World frame is NED** (gravity acts in **+z** = down; altitude = −z; crash when `z > −MIN_ALTITUDE`, i.e. within `MIN_ALTITUDE` of the ground at z=0).
+- **Body frame is FRD:** x out the nose / thrust axis, y right, z down. `alpha = atan2(w_body, u_body)`, `beta = atan2(v_body, sqrt(u²+w²))`. Both **stored in degrees** (the XFLR5 table lookup uses degrees); converted to radians at every trig site.
+- **Quaternion is scalar-first `[w,x,y,z]`**, body→world rotation (`quat_to_R`). Identity = level flight heading North; hover = nose-up ≈ `[0.7071,0,0.7071,0]`.
 - **Control vector** `ctrl_in = [T1, T2, delta1, delta2]` — motor thrusts (N) for L/R (1=L, 2=R) and elevon deflections (radians, trailing-edge-down positive).
 
 ## 6. The guidance → control loop in one breath
@@ -150,25 +155,25 @@ Geometry from `P0 Dimesions - updated.csv`; dynamics constants from `config.py`.
 
 ## 8. Conventions, gotchas & known discrepancies
 
-The last commit notes the sim "runs and gets (wrong) answers." Several early issues are now
-**fixed** — thrust axis (hover quaternion aligns body-x), force sign (`FM_aero + FM_control`),
-alpha/beta units (radians at trig sites), and gravity feed-forward (added in `control.py`).
-Remaining open items — confirm intent before "fixing." Full discussion in [algorithm.md](algorithm.md) §8.
+The last commit notes the sim "runs and gets (wrong) answers." Several issues are now **fixed** —
+thrust axis (hover quaternion aligns body-x), force sign (`FM_aero + FM_control`), alpha/beta units
+(radians at trig sites), gravity feed-forward, the **frame convention is now NED world + FRD body**
+throughout (gravity +z, lift toward −z, hover start attitude), and `plotter.py` (correct columns +
+altitude plotted as −z). Remaining open items — confirm intent before "fixing." Full discussion in
+[algorithm.md](algorithm.md) §8.
 
 - **`alpha`/`beta` are stored in DEGREES** (`compute_alpha_beta`). The XFLR5 table lookup and the
   AoA branch logic use degrees; every trig site converts to radians first (`np.radians`). Keep
   this split if you touch the aero code.
-- **Guidance z-setpoint = 0.** `basic_guidance` only shapes the x-axis; its implied position
-  setpoint is `[…, 0, 0]`, so from the `z = 1 m` start the position PD commands a descent toward
-  the ground. This (plus the initial-attitude slew below) is why the sim currently descends/crashes.
-- **Initial attitude vs hover.** `INITIAL_QUATERNION = [1,0,0,0]` = nose horizontal (body-x along
-  +x). With gravity feed-forward, hover wants body-x pointing **up**, so a ~90° attitude slew is
-  demanded at t=0. Confirm the intended start attitude for the maneuver under test.
+- **Guidance z-setpoint = 0.** `basic_guidance` only shapes the x (North) axis; its implied
+  position setpoint is `[…, 0, 0]`, and in NED **z=0 is the ground**, so from the `z = −1 m` (1 m
+  altitude) start the position PD commands a descent into the ground — this is why the sim still
+  descends/crashes. For an altitude-hold/hover test, set the guidance z setpoint to your target
+  altitude (e.g. `−1`).
 - **`aero_comp` units.** It subtracts an aero **force** (N) from an acceleration command (m/s²)
   without dividing by mass — likely should be `… - a_aero_global / m`.
-- **`plotter.py` column map is stale.** It assumes a 13-element state, but rows now carry 15
-  (alpha, beta). Columns 14–19 are `[alpha, beta, T1, T2, delta1, delta2]`, so the "Motor Forces"
-  plot actually shows alpha/beta/T1/T2. Fix the indices before trusting plots.
+- **Verify `aero.py` Cm sign.** Lift/drag are now FRD-correct, but confirm the XFLR5 `Cm` column is
+  nose-up-positive about +y (FRD) before trusting pitch dynamics.
 - **Sim stop time:** `main.py` unconditionally breaks at `t > CRASH_CHECK_TIME` (3.0 s), so
   `FINAL_TIME` (3.4 s) is never reached; effective run ≈ 3.0 s.
 - **Allocation placeholders:** moment coeffs `cx = 0.144`, `cy = 0.0616` ("Gemini 4/28"); the A2
